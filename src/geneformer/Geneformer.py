@@ -8,6 +8,7 @@ from copy import deepcopy
 import math
 from attention_smithy.components import Encoder, Decoder, EncoderLayer, DecoderLayer
 from transformers import get_linear_schedule_with_warmup
+from geneformer.loss import MaskedLoss
 
 class Geneformer(pl.LightningModule):
     def __init__(self,
@@ -18,6 +19,7 @@ class Geneformer(pl.LightningModule):
                  numeric_embedding_facade,
                  dropout,
                  num_layers,
+                 padding_token,
                  ):
         super().__init__()
         self.embedding_dimension = embedding_dimension
@@ -25,6 +27,7 @@ class Geneformer(pl.LightningModule):
         self.token_embedding = nn.Embedding(vocab_size, embedding_dimension)
         encoder_layer = EncoderLayer(embedding_dimension, self_attention, feedforward_network, dropout)
         self.encoder = Encoder(encoder_layer, number_of_layers=num_layers)
+        self.loss_method = MaskedLoss(embedding_dimension, vocab_size, padding_token)
 
     def forward(self, src_tensor, src_padding_mask):
         src_embedding = self.token_embedding(src_tensor) * math.sqrt(self.embedding_dimension)
@@ -33,16 +36,18 @@ class Geneformer(pl.LightningModule):
         return event_encoded
 
     def training_step(self, batch, batch_idx):
-        logits = self(*batch)
-        #loss = self.loss_method(vocabulary_logits, expected_output_tensor)
-        #self.log("train_loss", loss, prog_bar=False, batch_size=vocabulary_logits.shape[0])
-        return 0
+        masked_tensor, padding_mask, original_masked_value_tensor = batch
+        logits = self(masked_tensor, padding_mask)
+        loss = self.loss_method(logits, original_masked_value_tensor)
+        self.log("train_loss", loss, prog_bar=False, batch_size=logits.shape[0])
+        return loss
 
     def validation_step(self, batch, batch_idx):
-        logits = self(*batch)
-        #loss = self.loss_method(vocabulary_logits, expected_output_tensor)
-        #self.log("val_loss", loss, prog_bar=False, batch_size=vocabulary_logits.shape[0])
-        return 0
+        masked_tensor, padding_mask, original_masked_value_tensor = batch
+        logits = self(masked_tensor, padding_mask)
+        loss = self.loss_method(logits, original_masked_value_tensor)
+        self.log("val_loss", loss, prog_bar=False, batch_size=logits.shape[0])
+        return loss
 
     def configure_optimizers(self):
         optimizer = Adam(params=self.parameters(), lr=1e-3, weight_decay=0.001)

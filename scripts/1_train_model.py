@@ -54,9 +54,10 @@ def train_model(
 
     dataset = load_from_disk('data/')
 
-    padding_token = 1
+    masking_token = 1
+    padding_token = 0
 
-    data_module = GeneformerDataModule(dataset=dataset, batch_size=batch_size, num_batches_per_megabatch=10, test_val_size=0.01, padding_token=padding_token)
+    data_module = GeneformerDataModule(dataset=dataset, batch_size=batch_size, num_batches_per_megabatch=10, test_val_size=0.01, padding_token=padding_token, masking_token=masking_token)
 
     sinusoidal_position_embedding = SinusoidalPositionEmbedding(embed_dim)
     numeric_embedding_facade = NumericEmbeddingFacade(sinusoidal_position=sinusoidal_position_embedding)
@@ -71,6 +72,7 @@ def train_model(
         embedding_dimension=embed_dim,
         dropout=dropout,
         num_layers=num_layers,
+        padding_token=padding_token,
     )
 
     trainer.fit(model, data_module)
