@@ -34,6 +34,13 @@ def train_model(
         name=f"geneformer",
     )
 
+    train_loss_checkpoint_callback = ModelCheckpoint(
+        dirpath=f"checkpoints/",
+        every_n_train_steps=50,
+        filename="train-loss-{epoch:02d}-{step:08d}",
+        save_last=True,
+    )
+
     val_loss_checkpoint_callback = TensorBoardLoggingModelCheckpoint(
         monitor="val_loss",
         dirpath=f"checkpoints/",
@@ -46,6 +53,7 @@ def train_model(
         max_epochs=30,
         logger=logger,
         callbacks=[
+            train_loss_checkpoint_callback,
             val_loss_checkpoint_callback,
         ],
         log_every_n_steps=10,
@@ -65,7 +73,7 @@ def train_model(
     feedforward_network = FeedForwardNetwork(embed_dim, dim_feedforward, 'relu', dropout)
 
     model = Geneformer(
-        vocab_size=25424,
+        vocab_size=25425,
         self_attention=self_attention,
         feedforward_network=feedforward_network,
         numeric_embedding_facade=numeric_embedding_facade,
