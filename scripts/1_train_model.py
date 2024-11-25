@@ -52,7 +52,7 @@ def train_model(
 
     )
 
-    dataset = load_from_disk('data/')
+    dataset = load_from_disk('/common/meyerjlab/caleb__geneformer_files/genecorpus_30M_2048.dataset/')
 
     masking_token = 1
     padding_token = 0
