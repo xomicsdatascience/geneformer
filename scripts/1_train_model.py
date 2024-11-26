@@ -1,3 +1,4 @@
+import torch
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -49,14 +50,25 @@ def train_model(
         mode="min",
     )
 
+    class ValidateAtCheckpoints(pl.Callback):
+        def __init__(self, checkpoints):
+            self.checkpoints = checkpoints
+
+        def on_train_batch_end(self, trainer, pl_module, outputs, train_batch, batch_idx, **kwargs):
+            if batch_idx in self.checkpoints:
+                with torch.no_grad():
+                    for batch in trainer.val_dataloaders:
+                        pl_module.validation_step(val_batch, batch_idx)
+
     trainer = pl.Trainer(
         max_epochs=30,
         logger=logger,
         callbacks=[
             train_loss_checkpoint_callback,
             val_loss_checkpoint_callback,
+            ValidateAtCheckpoints(list(range(0, 847880, 200))[1:]),
         ],
-        log_every_n_steps=10,
+        log_every_n_steps=200,
 
     )
 
