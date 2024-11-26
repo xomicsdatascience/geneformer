@@ -58,7 +58,7 @@ def train_model(
             if batch_idx in self.checkpoints:
                 with torch.no_grad():
                     for batch in trainer.val_dataloaders:
-                        pl_module.validation_step(batch, batch_idx)
+                        pl_module.validation_step(tuple([x.to(pl_module.device) for x in batch]), batch_idx)
 
     trainer = pl.Trainer(
         max_epochs=30,
