@@ -20,10 +20,16 @@ class Geneformer(pl.LightningModule):
                  dropout,
                  num_layers,
                  padding_token,
+                 learning_rate,
+                 weight_decay,
+                 num_warmup_steps,
                  ):
         super().__init__()
         self.embedding_dimension = embedding_dimension
         self.numeric_embedding_facade = numeric_embedding_facade
+        self.learning_rate = learning_rate
+        self.weight_decay = weight_decay
+        self.num_warmup_steps = num_warmup_steps
         self.token_embedding = nn.Embedding(vocab_size, embedding_dimension)
         encoder_layer = EncoderLayer(embedding_dimension, self_attention, feedforward_network, dropout)
         self.encoder = Encoder(encoder_layer, number_of_layers=num_layers)
@@ -31,7 +37,8 @@ class Geneformer(pl.LightningModule):
 
     def forward(self, src_tensor, src_padding_mask):
         src_embedding = self.token_embedding(src_tensor) * math.sqrt(self.embedding_dimension)
-        position_embedding = self.numeric_embedding_facade.calculate_sinusoidal_and_learned_tokenizations(src_embedding)
+        sequence_length = src_embedding.shape[1]
+        position_embedding = self.numeric_embedding_facade.calculate_sinusoidal_and_learned_tokenizations(src_embedding, sequence_length=sequence_length)
         event_encoded = self.encoder(src=src_embedding + position_embedding, src_padding_mask=src_padding_mask, numeric_embedding_facade=self.numeric_embedding_facade)
         return event_encoded
 
@@ -50,8 +57,8 @@ class Geneformer(pl.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        optimizer = Adam(params=self.parameters(), lr=1e-3, weight_decay=0.001)
-        scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=10000,
+        optimizer = Adam(params=self.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
+        scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=self.num_warmup_steps,
                                                     num_training_steps=self.trainer.max_steps)
         return [optimizer], [{"scheduler": scheduler, "interval": "step", "frequency": 1}]
 

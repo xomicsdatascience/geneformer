@@ -93,6 +93,9 @@ def train_model(
         dropout=dropout,
         num_layers=num_layers,
         padding_token=padding_token,
+        learning_rate=1e-3,
+        weight_decay=0.001,
+        num_warmup_steps=10000,
     )
 
     trainer.fit(model, data_module)
