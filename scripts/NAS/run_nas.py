@@ -142,7 +142,7 @@ parameters = [
     ),
     FixedParameter(
         name="batch_size",
-        value=32,
+        value=64,
         parameter_type=ParameterType.INT,
     ),
     ChoiceParameter(
@@ -199,25 +199,20 @@ parameters = [
         upper=0.9,
         parameter_type=ParameterType.FLOAT,
     ),
-    RangeParameter(
+    FixedParameter(
         name="number_of_warmup_steps",
-        lower=8_000,
-        upper=12_000,
+        value=10_000,
         parameter_type=ParameterType.INT,
     ),
-    RangeParameter(
+    FixedParameter(
         name="weight_decay",
-        lower=1e-4,
-        upper=1e-2,
+        value=1e-3,
         parameter_type=ParameterType.FLOAT,
-        log_scale=True,
     ),
-    RangeParameter(
+    FixedParameter(
         name="learning_rate",
-        lower=1e-4,
-        upper=1e-2,
+        value=1e-3,
         parameter_type=ParameterType.FLOAT,
-        log_scale=True,
     ),
 ]
 
