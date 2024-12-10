@@ -1,4 +1,4 @@
-#"""
+"""
 import logging
 import sys
 import io
@@ -44,7 +44,7 @@ from geneformer import Geneformer
 from geneformer.data import GeneformerDataModule
 from attention_smithy.numeric_embeddings import SinusoidalPositionEmbedding, LearnedPositionEmbedding, RotaryPositionEmbedding, ALiBiPositionEmbedding, NumericEmbeddingFacade, NoAddEmbedding, PassthroughEmbedding
 from attention_smithy.components import MultiheadAttention, FeedForwardNetwork
-from attention_smithy.attention import StandardAttentionMethod
+from attention_smithy.attention import BigBirdAttentionMethod, StandardAttentionMethod
 from attention_smithy.utils import seed_everything
 from datasets import load_from_disk
 
@@ -119,16 +119,20 @@ def run_training_job(parsed_args, random_state=0):
 
     masking_token = 1
     padding_token = 0
+    block_size = 1
 
-    data_module = GeneformerDataModule(dataset=dataset, batch_size=parsed_args.batch_size, bb_block_size=4, test_val_size=0.01, padding_token=padding_token, masking_token=masking_token)
+    data_module = GeneformerDataModule(dataset=dataset, batch_size=parsed_args.batch_size, bb_block_size=block_size, test_val_size=0.01, padding_token=padding_token, masking_token=masking_token)
 
     sinusoidal_position_embedding = SinusoidalPositionEmbedding(parsed_args.embedding_dimension) if parsed_args.sinusoidal_position else NoAddEmbedding()
     learned_position_embedding = LearnedPositionEmbedding(max_sequence_length=3_000, embedding_dimension=parsed_args.embedding_dimension) if parsed_args.learned_position else NoAddEmbedding()
     rotary_position_embedding = RotaryPositionEmbedding(parsed_args.embedding_dimension // parsed_args.number_of_heads) if parsed_args.rotary_position else PassthroughEmbedding()
     alibi_position_embedding = ALiBiPositionEmbedding(parsed_args.number_of_heads) if parsed_args.alibi_position else NoAddEmbedding()
 
-    numeric_embedding_facade = NumericEmbeddingFacade(sinusoidal_position=sinusoidal_position_embedding, learned_position=learned_position_embedding, rotary_position=rotary_position_embedding, alibi_position=alibi_position_embedding)
-    self_attention = MultiheadAttention(embedding_dimension= parsed_args.embedding_dimension, number_of_heads= parsed_args.number_of_heads, attention_method= StandardAttentionMethod(parsed_args.dropout))
+    numeric_embedding_facade = NumericEmbeddingFacade(sinusoidal_position=sinusoidal_position_embedding, learned_position=learned_position_embedding)
+    #self_attention = MultiheadAttention(embedding_dimension= parsed_args.embedding_dimension, number_of_heads= parsed_args.number_of_heads, attention_method= StandardAttentionMethod(parsed_args.dropout))
+
+    big_bird_attention_method = BigBirdAttentionMethod(block_size_query=block_size, block_size_kv=block_size, local_window_extension_length=1, num_random_blocks=3, dropout=parsed_args.dropout)
+    self_attention = MultiheadAttention(embedding_dimension= parsed_args.embedding_dimension, number_of_heads= parsed_args.number_of_heads, attention_method= big_bird_attention_method)
     feedforward_network = FeedForwardNetwork(parsed_args.embedding_dimension, parsed_args.feedforward_dimension, parsed_args.activation, parsed_args.dropout)
     model = Geneformer(
         vocab_size=25425,
@@ -143,6 +147,7 @@ def run_training_job(parsed_args, random_state=0):
         weight_decay=parsed_args.weight_decay,
         num_warmup_steps=parsed_args.number_of_warmup_steps,
     )
+    torch.set_printoptions(threshold=10000)
 
     trainer.fit(model, data_module)
     val_loss = validation_checkpoint_callback.val_loss
