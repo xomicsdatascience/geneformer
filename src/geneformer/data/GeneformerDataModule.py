@@ -59,8 +59,8 @@ def mask_and_track(tensors, mask_token, padding_token, mask_prob=0.15):
         original_masked = torch.clone(tensor)
         masked_tensor = torch.where(mask, torch.tensor(mask_token).to(tensor.device), tensor)
 
-        original_masked[mask] = padding_token
-        original_masked[~mask] = tensor[~mask]
+        original_masked[~mask] = padding_token
+        original_masked[mask] = tensor[mask]
 
         masked_tensors.append(masked_tensor)
         original_masked_value_tensors.append(original_masked)
