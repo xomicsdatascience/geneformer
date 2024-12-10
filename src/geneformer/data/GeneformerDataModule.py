@@ -5,11 +5,11 @@ import random
 from torch.utils.data import DataLoader
 
 class GeneformerDataModule(pl.LightningDataModule):
-    def __init__(self, dataset, batch_size, num_batches_per_megabatch, padding_token, masking_token, test_val_size=0.01):
+    def __init__(self, dataset, batch_size, bb_block_size, padding_token, masking_token, test_val_size=0.01):
         super().__init__()
         self.dataset = dataset
         self.batch_size = batch_size
-        self.num_batches_per_megabatch = num_batches_per_megabatch
+        self.bb_block_size = bb_block_size
         self.test_val_size = test_val_size
         self.padding_token = padding_token
         self.masking_token = masking_token
@@ -44,6 +44,10 @@ class GeneformerDataModule(pl.LightningDataModule):
             batch_first=True,
             padding_value=self.padding_token,
         )
+        block_size_remainder = self.bb_block_size - (masked_tensor.shape[1] % self.bb_block_size)
+        block_size_pad = torch.full((masked_tensor.shape[0],block_size_remainder), self.padding_token).to(masked_tensor.device)
+        masked_tensor = torch.cat([masked_tensor, block_size_pad], dim=1)
+        original_masked_value_tensor = torch.cat([original_masked_value_tensor, block_size_pad], dim=1)
 
         padding_mask = (masked_tensor != self.padding_token)
 

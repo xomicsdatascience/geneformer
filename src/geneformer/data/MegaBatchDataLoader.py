@@ -4,10 +4,11 @@ from torch.utils.data import DataLoader
 
 
 class MegaBatchDataLoader(DataLoader):
-    def __init__(self, dataset, batch_size, num_batches_per_megabatch, padding_token, shuffle=False):
+    def __init__(self, dataset, batch_size, num_batches_per_megabatch, padding_token, bb_block_size, shuffle=False):
         super().__init__(dataset)
         self.megabatch_size = batch_size * num_batches_per_megabatch
         self.padding_token = padding_token
+        self.bb_block_size = bb_block_size
         self.shuffle = shuffle
 
 
@@ -19,9 +20,12 @@ class MegaBatchDataLoader(DataLoader):
             if i * self.batch_size > len(dataset):
                 return batches
             batch_slice = batch[i * self.batch_size:(i + 1) * self.batch_size]
+            longest_seq = max(len(seq) for seq in batch_slice)
+            longest_seq_with_block_size_padding = ((longest_seq + (self.bb_block_size-1)) // self.bb_block_size) * self.bb_block_size
             padded_batch = nn.utils.rnn.pad_sequence(
                 batch_slice,
                 batch_first=True,
+                max_len=longest_seq_with_block_size_padding,
                 padding_value=self.padding_token,
             )
             padding_mask = (padded_batch != self.self.padding_token)
