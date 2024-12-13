@@ -6,7 +6,7 @@ class MaskedLoss(nn.Module):
         super().__init__()
         self.linear = nn.Linear(hidden, vocab_size)
         self.softmax = nn.LogSoftmax(dim=-1)
-        self.criterion = nn.NLLLoss(ignore_index=0)
+        self.criterion = nn.NLLLoss(ignore_index=padding_token)
 
     def forward(self, x, original_masked_value_tensor):
         masked_logits = self.softmax(self.linear(x))
