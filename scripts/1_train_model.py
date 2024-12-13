@@ -12,6 +12,8 @@ from datasets import load_from_disk
 import time
 from datetime import timedelta
 
+torch.set_float32_matmul_precision('medium')
+
 class TensorBoardLoggingModelCheckpoint(ModelCheckpoint):
     def on_save_checkpoint(self, trainer, pl_module, checkpoint):
         super().on_save_checkpoint(trainer, pl_module, checkpoint)
@@ -28,7 +30,7 @@ def train_model(
         dropout=0.2,
         num_layers=6,
         random_seed=0,
-        batch_size=128,
+        batch_size=32,
 ):
     seed_everything(random_seed)
 
@@ -83,7 +85,7 @@ def train_model(
         callbacks=[
             train_loss_checkpoint_callback,
             val_loss_checkpoint_callback,
-            ValidateAtCheckpoints(list(range(0, 847880, 1000))[1:]),
+            ValidateAtCheckpoints(list(range(0, 856020, 1000))[1:]),
         ],
         log_every_n_steps=200,
 

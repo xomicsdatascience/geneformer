@@ -25,10 +25,10 @@ class GeneformerDataModule(pl.LightningDataModule):
         return DataLoader(self.train_dataset, batch_size=self.batch_size, collate_fn=self._collate_function, shuffle=True)
 
     def val_dataloader(self):
-        return DataLoader(self.val_dataset, batch_size=self.batch_size, collate_fn=self._collate_function, shuffle=True)
+        return DataLoader(self.val_dataset, batch_size=self.batch_size, collate_fn=self._collate_function)
 
     def test_dataloader(self):
-        return DataLoader(self.test_dataset, batch_size=self.batch_size, collate_fn=self._collate_function, shuffle=True)
+        return DataLoader(self.test_dataset, batch_size=self.batch_size, collate_fn=self._collate_function)
 
     def _collate_function(self, batch):
         input_tensors = [torch.tensor(x['input_ids']) for x in batch]
