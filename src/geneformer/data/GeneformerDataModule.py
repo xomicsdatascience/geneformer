@@ -5,7 +5,7 @@ import random
 from torch.utils.data import DataLoader
 
 class GeneformerDataModule(pl.LightningDataModule):
-    def __init__(self, dataset, batch_size, num_batches_per_megabatch, padding_token, masking_token, test_val_size=0.01):
+    def __init__(self, dataset, batch_size, num_batches_per_megabatch, padding_token, masking_token, test_val_size=5e-4):
         super().__init__()
         self.dataset = dataset
         self.batch_size = batch_size
