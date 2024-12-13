@@ -94,7 +94,7 @@ def train_model(
     masking_token = 1
     padding_token = 0
 
-    data_module = GeneformerDataModule(dataset=dataset, batch_size=batch_size, num_batches_per_megabatch=10, test_val_size=0.01, padding_token=padding_token, masking_token=masking_token)
+    data_module = GeneformerDataModule(dataset=dataset, batch_size=batch_size, num_batches_per_megabatch=10, padding_token=padding_token, masking_token=masking_token)
 
     sinusoidal_position_embedding = SinusoidalPositionEmbedding(embed_dim)
     numeric_embedding_facade = NumericEmbeddingFacade(sinusoidal_position=sinusoidal_position_embedding)
