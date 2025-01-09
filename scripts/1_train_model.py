@@ -14,15 +14,6 @@ from datetime import timedelta
 
 torch.set_float32_matmul_precision('medium')
 
-class TensorBoardLoggingModelCheckpoint(ModelCheckpoint):
-    def on_save_checkpoint(self, trainer, pl_module, checkpoint):
-        super().on_save_checkpoint(trainer, pl_module, checkpoint)
-        if self.monitor in trainer.callback_metrics:
-            metric_value = trainer.callback_metrics[self.monitor]
-            trainer.logger.experiment.add_scalar(
-                f"checkpoint/{self.monitor}", metric_value, trainer.global_step
-            )
-
 def train_model(
         embed_dim=256,
         num_heads=4,
@@ -41,14 +32,6 @@ def train_model(
         every_n_train_steps=50,
         filename="train-loss-{epoch:02d}-{step:08d}",
         save_last=True,
-    )
-
-    val_loss_checkpoint_callback = TensorBoardLoggingModelCheckpoint(
-        monitor="val_loss",
-        dirpath=f"checkpoints/",
-        filename="best-val-loss-{epoch:02d}-{val_loss:.2f}",
-        save_top_k=1,
-        mode="min",
     )
 
     class ValidateAtCheckpoints(pl.Callback):
@@ -84,8 +67,7 @@ def train_model(
         logger=logger,
         callbacks=[
             train_loss_checkpoint_callback,
-            val_loss_checkpoint_callback,
-            ValidateAtCheckpoints(list(range(0, 856020, 1000))[1:]),
+            ValidateAtCheckpoints(list(range(0, 856020, 10000))[1:] + [20]),
         ],
         log_every_n_steps=200,
 
@@ -104,7 +86,7 @@ def train_model(
     feedforward_network = FeedForwardNetwork(embed_dim, dim_feedforward, 'relu', dropout)
 
     model = Geneformer(
-        vocab_size=25425,
+        vocab_size=25500,
         self_attention=self_attention,
         feedforward_network=feedforward_network,
         numeric_embedding_facade=numeric_embedding_facade,
