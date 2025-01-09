@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 data_directory = 'data'
 
 class GeneformerDataModule(pl.LightningDataModule):
-    def __init__(self, dataset, batch_size, padding_token, masking_token):
+    def __init__(self, batch_size, padding_token, masking_token):
         super().__init__()
         self.batch_size = batch_size
         self.padding_token = padding_token
