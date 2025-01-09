@@ -8,16 +8,17 @@ from geneformer.data import LineIndexDataset
 data_directory = 'data'
 
 class GeneformerDataModule(pl.LightningDataModule):
-    def __init__(self, batch_size, padding_token, masking_token):
+    def __init__(self, batch_size, padding_token, masking_token, num_training_samples):
         super().__init__()
         self.batch_size = batch_size
         self.padding_token = padding_token
         self.masking_token = masking_token
+        self.num_training_samples = num_training_samples
 
     def setup(self, stage=None):
-        self.train_dataset = LineIndexDataset(f'{data_directory}/train{self.de_filepath_suffix}', f'{data_directory}/train{self.en_filepath_suffix}', self.num_training_samples)
-        self.val_dataset = LineIndexDataset(f'{data_directory}/val{self.de_filepath_suffix}', f'{data_directory}/val{self.en_filepath_suffix}', self.num_training_samples)
-        self.test_dataset = LineIndexDataset(f'{data_directory}/test{self.de_filepath_suffix}', f'{data_directory}/test{self.en_filepath_suffix}', self.num_training_samples)
+        self.train_dataset = LineIndexDataset(f'{data_directory}/train.csv', self.num_training_samples)
+        self.val_dataset = LineIndexDataset(f'{data_directory}/val.csv', self.num_training_samples)
+        self.test_dataset = LineIndexDataset(f'{data_directory}/test.csv', self.num_training_samples)
 
     def train_dataloader(self):
         return DataLoader(self.train_dataset, batch_size=self.batch_size, collate_fn=self._collate_function, shuffle=True)
