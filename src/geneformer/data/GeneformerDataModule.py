@@ -3,6 +3,7 @@ from torch import nn
 import pytorch_lightning as pl
 import random
 from torch.utils.data import DataLoader
+from geneformer.data import LineIndexDataset
 
 data_directory = 'data'
 

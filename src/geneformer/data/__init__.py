@@ -1,1 +1,2 @@
+from geneformer.data.LineIndexDataset import LineIndexDataset
 from geneformer.data.GeneformerDataModule import GeneformerDataModule
