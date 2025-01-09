@@ -3,7 +3,7 @@ from torch.utils.data import Dataset
 import mmap
 
 class LineIndexDataset(Dataset):
-    def __init__(self, input_filepath, num_training_samples=None):
+    def __init__(self, input_filepath, num_training_samples):
         self.input_file = MappedFile(input_filepath)
         self.num_training_samples = num_training_samples
         lengths = []
