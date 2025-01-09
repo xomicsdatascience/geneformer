@@ -115,8 +115,8 @@ def run_training_job(parsed_args, random_state=0):
         log_every_n_steps=200,
     )
 
-    dataset = load_from_disk('../data/')
-
+    dataset = load_from_disk('/common/meyerjlab/caleb__geneformer_files/genecorpus_30M_2048.dataset/')
+    
     masking_token = 1
     padding_token = 0
 
