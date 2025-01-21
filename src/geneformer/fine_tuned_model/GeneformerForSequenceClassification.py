@@ -24,20 +24,22 @@ class GeneformerForSequenceClassification(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         input_tensor, labels = batch
+        input_tensor, labels = input_tensor.to(self.device), labels.to(self.device)
         logits = self(input_tensor)
         loss = F.cross_entropy(logits, labels)
-        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
+        self.log('train_loss', loss, on_step=True)
         accuracy = (logits.argmax(dim=-1) == labels).float().mean()
-        self.log('train_acc', accuracy, on_step=True, on_epoch=True, prog_bar=True)
+        self.log('train_acc', accuracy, on_step=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
         input_tensor, labels = batch
+        input_tensor, labels = input_tensor.to(self.device), labels.to(self.device)
         logits = self(input_tensor)
         loss = F.cross_entropy(logits, labels)
-        self.log('val_loss', loss, on_epoch=True, prog_bar=True)
+        self.log('val_loss', loss)
         accuracy = (logits.argmax(dim=-1) == labels).float().mean()
-        self.log('val_acc', accuracy, on_epoch=True, prog_bar=True)
+        self.log('val_acc', accuracy)
         return loss
 
     def configure_optimizers(self):

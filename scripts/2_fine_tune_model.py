@@ -63,13 +63,13 @@ def fine_tune_model(
 
                 self.last_checkpoint_time = validation_end_time
     trainer = pl.Trainer(
-        max_epochs=1,
+        max_epochs=20,
         logger=logger,
         callbacks=[
             train_loss_checkpoint_callback,
-            ValidateAtCheckpoints(list(range(0, 18100, 1000)) + [20]),
+            ValidateAtCheckpoints(list(range(0, 18100, 500)) + [20, 40, 60, 80, 100]),
         ],
-        log_every_n_steps=200,
+        log_every_n_steps=20,
 
     )
 
