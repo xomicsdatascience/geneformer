@@ -74,7 +74,7 @@ def fine_tune_model(
     )
 
 
-    dataset = load_from_disk('data/example_input_files/cell_classification/disease_classification/human_dcm_hcm_nf.dataset/')
+    dataset = load_from_disk('/common/meyerjlab/caleb__geneformer_files/example_input_files/cell_classification/disease_classification/human_dcm_hcm_nf.dataset')
 
     masking_token = 1
     padding_token = 0
