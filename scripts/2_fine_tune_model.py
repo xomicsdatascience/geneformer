@@ -4,7 +4,7 @@ from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 from geneformer import Geneformer
 from geneformer.fine_tuned_model import GeneformerForSequenceClassification, GeneformerDataModuleForSequenceClassification
-from attention_smithy.numeric_embeddings import SinusoidalPositionEmbedding, NumericEmbeddingFacade
+from attention_smithy.numeric_embeddings import SinusoidalPositionEmbedding, NumericEmbeddingManager
 from attention_smithy.components import MultiheadAttention, FeedForwardNetwork
 from attention_smithy.attention import StandardAttentionMethod
 from attention_smithy.utils import seed_everything
@@ -84,7 +84,7 @@ def fine_tune_model(
 
     data_module = GeneformerDataModuleForSequenceClassification(dataset=dataset, batch_size=batch_size, num_batches_per_megabatch=10, padding_token=padding_token, masking_token=masking_token, output_tokenizer=cell_tokenizer)
     sinusoidal_position_embedding = SinusoidalPositionEmbedding(embed_dim)
-    numeric_embedding_facade = NumericEmbeddingFacade(sinusoidal_position=sinusoidal_position_embedding)
+    numeric_embedding_manager = NumericEmbeddingManager(sinusoidal_position=sinusoidal_position_embedding)
     self_attention = MultiheadAttention(embedding_dimension = embed_dim, number_of_heads = num_heads, attention_method = StandardAttentionMethod(dropout))
     feedforward_network = FeedForwardNetwork(embed_dim, dim_feedforward, 'relu', dropout)
 
@@ -92,7 +92,7 @@ def fine_tune_model(
         vocab_size=25500,
         self_attention=self_attention,
         feedforward_network=feedforward_network,
-        numeric_embedding_facade=numeric_embedding_facade,
+        numeric_embedding_manager=numeric_embedding_manager,
         embedding_dimension=embed_dim,
         dropout=dropout,
         num_layers=num_layers,

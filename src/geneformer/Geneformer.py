@@ -16,7 +16,7 @@ class Geneformer(pl.LightningModule):
                  embedding_dimension: int,
                  self_attention,
                  feedforward_network,
-                 numeric_embedding_facade,
+                 numeric_embedding_manager,
                  dropout,
                  num_layers,
                  padding_token,
@@ -26,7 +26,7 @@ class Geneformer(pl.LightningModule):
                  ):
         super().__init__()
         self.embedding_dimension = embedding_dimension
-        self.numeric_embedding_facade = numeric_embedding_facade
+        self.numeric_embedding_manager = numeric_embedding_manager
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
         self.num_warmup_steps = num_warmup_steps
@@ -38,8 +38,8 @@ class Geneformer(pl.LightningModule):
     def forward(self, src_tensor, src_padding_mask):
         src_embedding = self.token_embedding(src_tensor) * math.sqrt(self.embedding_dimension)
         sequence_length = src_embedding.shape[1]
-        position_embedding = self.numeric_embedding_facade.calculate_sinusoidal_and_learned_tokenizations(src_embedding, sequence_length=sequence_length)
-        event_encoded = self.encoder(src=src_embedding + position_embedding, src_padding_mask=src_padding_mask, numeric_embedding_facade=self.numeric_embedding_facade)
+        position_embedding = self.numeric_embedding_manager.calculate_sinusoidal_and_learned_tokenizations(src_embedding, sequence_length=sequence_length)
+        event_encoded = self.encoder(src=src_embedding + position_embedding, src_padding_mask=src_padding_mask, numeric_embedding_manager=self.numeric_embedding_manager)
         return event_encoded
 
     def training_step(self, batch, batch_idx):

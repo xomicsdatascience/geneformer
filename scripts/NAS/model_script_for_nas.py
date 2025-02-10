@@ -42,7 +42,7 @@ from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 
 from geneformer import Geneformer
 from geneformer.data import GeneformerDataModule
-from attention_smithy.numeric_embeddings import SinusoidalPositionEmbedding, LearnedPositionEmbedding, RotaryPositionEmbedding, ALiBiPositionEmbedding, NumericEmbeddingFacade, NoAddEmbedding, PassthroughEmbedding
+from attention_smithy.numeric_embeddings import SinusoidalPositionEmbedding, LearnedPositionEmbedding, RotaryPositionEmbedding, ALiBiPositionEmbedding, NumericEmbeddingManager, NoAddEmbedding, PassthroughEmbedding
 from attention_smithy.components import MultiheadAttention, FeedForwardNetwork
 from attention_smithy.attention import StandardAttentionMethod
 from attention_smithy.utils import seed_everything
@@ -127,14 +127,14 @@ def run_training_job(parsed_args, random_state=0):
     rotary_position_embedding = RotaryPositionEmbedding(parsed_args.embedding_dimension // parsed_args.number_of_heads) if parsed_args.rotary_position else PassthroughEmbedding()
     alibi_position_embedding = ALiBiPositionEmbedding(parsed_args.number_of_heads) if parsed_args.alibi_position else NoAddEmbedding()
 
-    numeric_embedding_facade = NumericEmbeddingFacade(sinusoidal_position=sinusoidal_position_embedding, learned_position=learned_position_embedding, rotary_position=rotary_position_embedding, alibi_position=alibi_position_embedding)
+    numeric_embedding_manager = NumericEmbeddingManager(sinusoidal_position=sinusoidal_position_embedding, learned_position=learned_position_embedding, rotary_position=rotary_position_embedding, alibi_position=alibi_position_embedding)
     self_attention = MultiheadAttention(embedding_dimension= parsed_args.embedding_dimension, number_of_heads= parsed_args.number_of_heads, attention_method= StandardAttentionMethod(parsed_args.dropout))
     feedforward_network = FeedForwardNetwork(parsed_args.embedding_dimension, parsed_args.feedforward_dimension, parsed_args.activation, parsed_args.dropout)
     model = Geneformer(
         vocab_size=25425,
         self_attention=self_attention,
         feedforward_network=feedforward_network,
-        numeric_embedding_facade=numeric_embedding_facade,
+        numeric_embedding_manager=numeric_embedding_manager,
         embedding_dimension=parsed_args.embedding_dimension,
         dropout=parsed_args.dropout,
         num_layers=parsed_args.number_of_layers,
