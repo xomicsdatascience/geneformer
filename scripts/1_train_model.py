@@ -79,23 +79,18 @@ def train_model(
     dataset = load_from_disk('data/')
     data_module = GeneformerDataModule(dataset=dataset, batch_size=batch_size, num_batches_per_megabatch=10, padding_token=padding_token, masking_token=masking_token)
 
-    sinusoidal_position_embedding = SinusoidalPositionEmbedding(embed_dim)
-    numeric_embedding_manager = NumericEmbeddingManager(sinusoidal_position=sinusoidal_position_embedding)
-    self_attention = MultiheadAttention(embedding_dimension = embed_dim, number_of_heads = num_heads, attention_method = StandardAttentionMethod(dropout))
-    feedforward_network = FeedForwardNetwork(embed_dim, dim_feedforward, 'relu', dropout)
-
     model = Geneformer(
         vocab_size=25500,
-        self_attention=self_attention,
-        feedforward_network=feedforward_network,
-        numeric_embedding_manager=numeric_embedding_manager,
+        padding_token=padding_token,
         embedding_dimension=embed_dim,
+        number_of_heads=num_heads,
+        feedforward_dimension=dim_feedforward,
         dropout=dropout,
         num_layers=num_layers,
-        padding_token=padding_token,
         learning_rate=1e-3,
         weight_decay=0.001,
         num_warmup_steps=10000,
+        use_sinusoidal=True
     )
 
     trainer.fit(model, data_module)
