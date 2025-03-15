@@ -112,8 +112,9 @@ class Geneformer(pl.LightningModule):
 
     def forward(self, src_tensor, src_padding_mask):
         src_embedding = self.token_embedding(src_tensor) * math.sqrt(self.embedding_dimension)
-        position_embedding = self.numeric_embedding_manager.calculate_sinusoidal_and_learned_tokenizations(
-            src_embedding)
+        position_embedding = self.numeric_embedding_manager.create_positional_or_custom_embedding(
+            token_embedding=src_embedding
+        )
         event_encoded = self.encoder(
             src=src_embedding + position_embedding,
             src_padding_mask=src_padding_mask,
