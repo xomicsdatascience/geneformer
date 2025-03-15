@@ -8,7 +8,7 @@ from attention_smithy.components import Encoder, EncoderLayer, MultiheadAttentio
 from attention_smithy.numeric_embeddings import (
     SinusoidalPositionEmbedding, LearnedPositionEmbedding,
     RotaryPositionEmbedding, ALiBiPositionEmbedding,
-    NumericEmbeddingManager, NoAddEmbedding, PassthroughEmbedding
+    NumericEmbeddingManager
 )
 from attention_smithy.attention import StandardAttentionMethod
 from transformers import get_linear_schedule_with_warmup
@@ -95,32 +95,20 @@ class Geneformer(pl.LightningModule):
         self.loss_method = MaskedLoss(self.embedding_dimension, vocab_size, padding_token)
 
     def _create_embedding_manager(self):
-        sinusoidal_position = (
-            SinusoidalPositionEmbedding(self.embedding_dimension)
-            if self.config['use_sinusoidal'] else NoAddEmbedding()
-        )
+        embedding_strategies = []
+        if self.config['use_sinusoidal']:
+            embedding_strategies.append(SinusoidalPositionEmbedding(self.config['embedding_dimension']))
 
-        learned_position = (
-            LearnedPositionEmbedding(max_sequence_length=3_000, embedding_dimension=self.embedding_dimension)
-            if self.config['use_learned'] else NoAddEmbedding()
-        )
+        if self.config['use_learned']:
+            embedding_strategies.append(LearnedPositionEmbedding(max_sequence_length=3_000, embedding_dimension=self.config['embedding_dimension']))
 
-        rotary_position = (
-            RotaryPositionEmbedding(self.embedding_dimension // self.config['number_of_heads'])
-            if self.config['use_rotary'] else PassthroughEmbedding()
-        )
+        if self.config['use_rotary']:
+            embedding_strategies.append(RotaryPositionEmbedding(self.config['embedding_dimension'] // self.config['number_of_heads']))
 
-        alibi_position = (
-            ALiBiPositionEmbedding(self.config['number_of_heads'])
-            if self.config['use_alibi'] else NoAddEmbedding()
-        )
+        if self.config['use_alibi']:
+            embedding_strategies.append(ALiBiPositionEmbedding(self.config['number_of_heads']))
 
-        return NumericEmbeddingManager(
-            sinusoidal_position=sinusoidal_position,
-            learned_position=learned_position,
-            rotary_position=rotary_position,
-            alibi_position=alibi_position
-        )
+        return NumericEmbeddingManager(embedding_strategies)
 
     def forward(self, src_tensor, src_padding_mask):
         src_embedding = self.token_embedding(src_tensor) * math.sqrt(self.embedding_dimension)

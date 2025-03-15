@@ -7,7 +7,7 @@ from geneformer.data import GeneformerDataModule
 from attention_smithy.numeric_embeddings import SinusoidalPositionEmbedding, NumericEmbeddingManager
 from attention_smithy.components import MultiheadAttention, FeedForwardNetwork
 from attention_smithy.attention import StandardAttentionMethod
-from attention_smithy.utils import seed_everything
+from attention_smithy.utils import seed_everything, get_available_gpu_count
 from datasets import load_from_disk
 import time
 from datetime import timedelta
@@ -62,6 +62,10 @@ def train_model(
                 print(f"Time spent on validation: {self.format_time(validation_time)}")
 
                 self.last_checkpoint_time = validation_end_time
+
+    num_gpus = get_available_gpu_count()
+    strategy = 'ddp' if num_gpus > 1 else 'auto'
+
     trainer = pl.Trainer(
         max_epochs=1,
         logger=logger,
@@ -70,7 +74,9 @@ def train_model(
             ValidateAtCheckpoints(list(range(0, 856020, 10000))[1:] + [20]),
         ],
         log_every_n_steps=200,
-
+        strategy=strategy,
+        accelerator='auto',
+        devices='auto',
     )
 
 
