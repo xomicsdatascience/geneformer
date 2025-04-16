@@ -123,27 +123,14 @@ parameters = [
         parameter_type=ParameterType.STRING,
         dependents={
             "true": [
-                "batch_size",
                 "sinusoidal_position",
                 "learned_position",
                 "rotary_position",
                 "alibi_position",
-                "embedding_dimension",
-                "feedforward_dimension",
-                "number_of_heads",
-                "number_of_layers",
-                "number_of_warmup_steps",
-                "weight_decay",
-                "learning_rate",
                 "dropout",
                 "activation",
             ]
         },
-    ),
-    FixedParameter(
-        name="batch_size",
-        value=64,
-        parameter_type=ParameterType.INT,
     ),
     ChoiceParameter(
         name="sinusoidal_position",
@@ -166,27 +153,6 @@ parameters = [
         parameter_type=ParameterType.BOOL,
     ),
     ChoiceParameter(
-        name="embedding_dimension",
-        values=[128, 256, 512, 1024],
-        parameter_type=ParameterType.INT,
-    ),
-    ChoiceParameter(
-        name="feedforward_dimension",
-        values=[128, 256, 512, 1024, 2048],
-        parameter_type=ParameterType.INT,
-    ),
-    ChoiceParameter(
-        name="number_of_heads",
-        values=[4, 8, 16, 32],
-        parameter_type=ParameterType.INT,
-    ),
-    RangeParameter(
-        name="number_of_layers",
-        lower=4,
-        upper=12,
-        parameter_type=ParameterType.INT,
-    ),
-    ChoiceParameter(
         name="activation",
         values=["leaky_relu_steep", "leaky_relu_slight", "sigmoid", "tanh", "selu", "relu"],
         parameter_type=ParameterType.STRING,
@@ -197,21 +163,6 @@ parameters = [
         name="dropout",
         lower=0.0,
         upper=0.9,
-        parameter_type=ParameterType.FLOAT,
-    ),
-    FixedParameter(
-        name="number_of_warmup_steps",
-        value=10_000,
-        parameter_type=ParameterType.INT,
-    ),
-    FixedParameter(
-        name="weight_decay",
-        value=1e-3,
-        parameter_type=ParameterType.FLOAT,
-    ),
-    FixedParameter(
-        name="learning_rate",
-        value=1e-3,
         parameter_type=ParameterType.FLOAT,
     ),
 ]
@@ -254,13 +205,13 @@ val_loss = MyTensorboardMetric(
 opt_config = OptimizationConfig(objective=Objective(metric=val_loss, minimize=True))
 
 experiment = Experiment(
-    name="torchx_cptac",
+    name="geneformer_nas",
     search_space=search_space,
     optimization_config=opt_config,
     runner=ax_runner,
 )
 
-total_trials = 40
+total_trials = 30
 
 
 gs = choose_generation_strategy(
