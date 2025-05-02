@@ -44,6 +44,11 @@ class GeneformerDataModule(pl.LightningDataModule):
             batch_first=True,
             padding_value=self.padding_token,
         )
+        batch_size, current_seq_len = masked_tensor.shape[:2]
+        pad_amount = 2048 - current_seq_len
+        pad_dims = (0, 0) * (masked_tensor.dim() - 2) + (0, pad_amount)
+        masked_tensor = torch.nn.functional.pad(masked_tensor, pad_dims, value=self.padding_token)
+        original_masked_value_tensor = torch.nn.functional.pad(original_masked_value_tensor, pad_dims, value=self.padding_token)
 
         padding_mask = (masked_tensor != self.padding_token)
 
