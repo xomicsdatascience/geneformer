@@ -147,7 +147,7 @@ class Geneformer(pl.LightningModule):
             self.embedding_dimension,
             self.config['feedforward_dimension'],
             self.config['activation'],
-            self._initialize_encoder()
+            self.config['dropout']
         )
         encoder_layer = EncoderLayer(
             self.embedding_dimension,
