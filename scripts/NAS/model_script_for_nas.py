@@ -96,6 +96,7 @@ def get_config_from_args():
     args = parse_args()
 
     config = {
+        'log_path':args.log_path,
         'embedding_dimension': args.embedding_dimension,
         'number_of_heads': args.number_of_heads,
         'dropout': args.dropout,
@@ -135,6 +136,7 @@ def run_training_job(configs, random_state=0):
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
             if trainer.global_step >= self.max_batches:
                 trainer.should_stop = True
+                trainer.limit_val_batches = 0
 
     class ValidateAtCheckpoints(pl.Callback):
         def __init__(self, checkpoints):
@@ -156,30 +158,31 @@ def run_training_job(configs, random_state=0):
                 print(f"Time elapsed from last checkpoint: {self.format_time(elapsed_time_from_last_checkpoint)}")
 
                 validation_start_time = time.time()
+                val_losses = []
                 with torch.no_grad():
                     for batch in trainer.val_dataloaders:
-                        pl_module.validation_step(tuple([x.to(pl_module.device) for x in batch]), batch_idx)
+                        batch = tuple(x.to(pl_module.device) for x in batch)
+                        val_loss = pl_module.validation_step(batch, batch_idx)
+                        val_losses.append(val_loss)
                 validation_end_time = time.time()
                 validation_time = validation_end_time - validation_start_time
 
-                # Retrieve latest val_loss from logged metrics
-                current_val_loss = trainer.callback_metrics.get("val_loss")
-                if current_val_loss is not None:
-                    current_val_loss = current_val_loss.item() if hasattr(current_val_loss, 'item') else float(
-                        current_val_loss)
-                    if current_val_loss < self.best_val_loss:
-                        self.best_val_loss = current_val_loss
-                        print(f"New best val_loss: {self.best_val_loss:.4f}")
+                avg_val_loss = sum(val_losses) / len(val_losses)
+                if avg_val_loss < self.best_val_loss:
+                    self.best_val_loss = avg_val_loss
+                    print(f"New best avg val_loss: {self.best_val_loss:.4f}")
 
                 print(f"Time spent on validation: {self.format_time(validation_time)}")
 
                 self.last_checkpoint_time = validation_end_time
 
+    validation_checkpoint_callback = ValidateAtCheckpoints(list(range(0, 856020, 600))[6:])
+
     trainer = pl.Trainer(
         max_epochs=1,
         logger=logger,
         callbacks=[
-            ValidateAtCheckpoints(list(range(0, 856020, 600))[6:]),
+            validation_checkpoint_callback,
             StopAfterBatches(max_batches=6001)
         ],
         log_every_n_steps=200,
@@ -190,7 +193,7 @@ def run_training_job(configs, random_state=0):
     masking_token = 1
     padding_token = 0
 
-    data_module = GeneformerDataModule(dataset=dataset, batch_size=32, num_batches_per_megabatch=10, test_val_size=0.01, padding_token=padding_token, masking_token=masking_token)
+    data_module = GeneformerDataModule(dataset=dataset, batch_size=32, num_batches_per_megabatch=10, padding_token=padding_token, masking_token=masking_token)
     model = Geneformer(
         vocab_size=25500,
         padding_token=padding_token,
