@@ -96,7 +96,7 @@ class Geneformer(pl.LightningModule):
             global_attention_mask=global_attention_mask,
         )
         if self.config['attention_method'] == 'perceiver':
-            event_encoded = self.decoder(src_embedding, event_encoded, padding_and_loss_attention_mask=None)
+            event_encoded = self.decoder(src_embedding, event_encoded, src_padding_mask=None, numeric_embedding_manager=self.numeric_embedding_manager)
         return event_encoded
 
     def training_step(self, batch, batch_idx):
@@ -178,7 +178,7 @@ class Geneformer(pl.LightningModule):
             self.config['dropout']
         )
         encoder = Encoder(encoder_layer, number_of_layers=self.config['perceiver_latent_encoder_num_layers'])
-        perceiver_layer = PercieverEncoderLayer(
+        perceiver_layer = PerceiverEncoderLayer(
             self.embedding_dimension,
             self_attention,
             feedforward_network,
@@ -196,7 +196,7 @@ class Geneformer(pl.LightningModule):
             def forward(self, x, **kwargs):
                 return x
 
-        self.decoder = PercieverEncoderLayer(
+        self.decoder = PerceiverEncoderLayer(
             self.embedding_dimension,
             self_attention,
             feedforward_network,
