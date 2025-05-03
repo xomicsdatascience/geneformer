@@ -65,10 +65,10 @@ def parse_args():
     parser.add_argument("--log_path", type=str, required=True, help="Dir to place logs from all trials")
 
     # Positional encoding options (boolean flags)
-    parser.add_argument('--sinusoidal_position', action='store_true', required=True, help='Use sinusoidal positional encoding')
-    parser.add_argument('--learned_position', action='store_true', required=True, help='Use learned positional encoding')
-    parser.add_argument('--rotary_position', action='store_true', required=True, help='Use rotary positional encoding')
-    parser.add_argument('--alibi_position', action='store_true', required=True, help='Use ALiBi positional encoding')
+    parser.add_argument('--sinusoidal_position', action='store_true', help='Use sinusoidal positional encoding')
+    parser.add_argument('--learned_position', action='store_true', help='Use learned positional encoding')
+    parser.add_argument('--rotary_position', action='store_true', help='Use rotary positional encoding')
+    parser.add_argument('--alibi_position', action='store_true', help='Use ALiBi positional encoding')
 
     # Model architecture
     parser.add_argument('--embedding_dimension', type=int, default=256, help='Embedding dimension (default: 256)')
@@ -121,6 +121,7 @@ def get_config_from_args():
 
 def run_training_job(configs, random_state=0):
     seed_everything(random_state)
+    torch.set_float32_matmul_precision('medium')
     logger = TensorBoardLogger(
         "tb_logs",
         name=f"geneformer",
@@ -174,15 +175,12 @@ def run_training_job(configs, random_state=0):
 
                 self.last_checkpoint_time = validation_end_time
 
-
-    validation_checkpoint_callback = ValidateAtCheckpoint(train_step_cutoff=12_000)
-
     trainer = pl.Trainer(
         max_epochs=1,
         logger=logger,
         callbacks=[
-            ValidateAtCheckpoints(list(range(0, 856020, 700))[1:]),
-            StopAfterBatches(max_batches=7001)
+            ValidateAtCheckpoints(list(range(0, 856020, 600))[6:]),
+            StopAfterBatches(max_batches=6001)
         ],
         log_every_n_steps=200,
     )
@@ -192,9 +190,9 @@ def run_training_job(configs, random_state=0):
     masking_token = 1
     padding_token = 0
 
-    data_module = GeneformerDataModule(dataset=dataset, batch_size=64, num_batches_per_megabatch=10, test_val_size=0.01, padding_token=padding_token, masking_token=masking_token)
+    data_module = GeneformerDataModule(dataset=dataset, batch_size=32, num_batches_per_megabatch=10, test_val_size=0.01, padding_token=padding_token, masking_token=masking_token)
     model = Geneformer(
-        vocab_size=25425,
+        vocab_size=25500,
         padding_token=padding_token,
         **configs
     )
