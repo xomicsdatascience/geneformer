@@ -44,6 +44,7 @@ from geneformer import Geneformer
 from geneformer.data import GeneformerDataModule
 from attention_smithy.utils import seed_everything
 from datasets import load_from_disk
+from datetime import timedelta
 
 warnings.filterwarnings("ignore")  # Disable data logger warnings
 logging.getLogger("pytorch_lightning").setLevel(logging.INFO)  # Disable GPU/TPU prints
@@ -82,6 +83,13 @@ def parse_args():
     parser.add_argument('--weight_decay', type=float, default=0.001, help='Weight decay for optimizer (default: 0.001)')
     parser.add_argument('--scheduler_warmup_steps', type=int, default=10000, help='Number of warmup steps for LR scheduler (default: 10000)')
 
+    parser.add_argument('--attention_method', type=str, required=True, help='Type of attention used (options are: standard, longformer, linformer, perceiver)')
+    parser.add_argument('--perceiver_latent_encoder_num_layers', type=int, default=3, help='Each perceiver layer has a latent encoder. This parameter determines the number of layers in that encoder.')
+    parser.add_argument('--perceiver_latent_length', type=int, default=512, help='The "sequence length" of the latent space.')
+    parser.add_argument('--longformer_local_attention_window_width', type=int, default=128, help='The number to either side of a given token that attends to a token in local attention.')
+    parser.add_argument('--linformer_projected_k', type=int, default=128, help='Linformer projection k.')
+    parser.add_argument('--maximum_sequence_length', type=int, default=2048, help='Linformer requires a prior knowledge of the expected sequence length. This, all sequences are set to the maximum (2048).')
+
     return parser.parse_args()
 
 def get_config_from_args():
@@ -101,6 +109,12 @@ def get_config_from_args():
         'use_learned': args.learned_position,
         'use_rotary': args.rotary_position,
         'use_alibi': args.alibi_position,
+        'attention_method': args.attention_method,
+        'perceiver_latent_encoder_num_layers': args.perceiver_latent_encoder_num_layers,
+        'perceiver_latent_length': args.perceiver_latent_length,
+        'longformer_local_attention_window_width': args.longformer_local_attention_window_width,
+        'linformer_projected_k': args.linformer_projected_k,
+        'maximum_sequence_length': args.maximum_sequence_length,
     }
 
     return config
@@ -112,30 +126,63 @@ def run_training_job(configs, random_state=0):
         name=f"geneformer",
     )
 
-    class ValidateAtCheckpoint(pl.Callback):
-        def __init__(self, train_step_cutoff):
-            self.train_step_cutoff = train_step_cutoff
-            self.val_loss = -1
+    class StopAfterBatches(pl.Callback):
+        def __init__(self, max_batches):
+            super().__init__()
+            self.max_batches = max_batches
 
-        def on_train_batch_end(self, trainer, pl_module, outputs):
-            if trainer.global_step in self.train_step_cutoff:
-                with torch.no_grad():
-                    val_loss_accumulated = 0
-                    batch_count = 0
-                    for batch in trainer.val_dataloaders:
-                        batch_count += 1
-                        val_loss_accumulated += pl_module.validation_step(tuple([x.to(pl_module.device) for x in batch]), batch_idx)
-                    self.val_loss = val_loss / batch_count
+        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+            if trainer.global_step >= self.max_batches:
                 trainer.should_stop = True
-                trainer.train_dataloader.sampler.set_epoch(1_000_000)
+
+    class ValidateAtCheckpoints(pl.Callback):
+        def __init__(self, checkpoints):
+            self.checkpoints = checkpoints
+            self.start_time = time.time()
+            self.last_checkpoint_time = self.start_time
+            self.best_val_loss = float('inf')
+
+        def format_time(self, seconds):
+            return str(timedelta(seconds=int(seconds)))
+
+        def on_train_batch_end(self, trainer, pl_module, outputs, train_batch, batch_idx, **kwargs):
+            if batch_idx in self.checkpoints:
+                current_time = time.time()
+                elapsed_time_from_start = current_time - self.start_time
+                elapsed_time_from_last_checkpoint = current_time - self.last_checkpoint_time
+
+                print(f"Time elapsed from start: {self.format_time(elapsed_time_from_start)}")
+                print(f"Time elapsed from last checkpoint: {self.format_time(elapsed_time_from_last_checkpoint)}")
+
+                validation_start_time = time.time()
+                with torch.no_grad():
+                    for batch in trainer.val_dataloaders:
+                        pl_module.validation_step(tuple([x.to(pl_module.device) for x in batch]), batch_idx)
+                validation_end_time = time.time()
+                validation_time = validation_end_time - validation_start_time
+
+                # Retrieve latest val_loss from logged metrics
+                current_val_loss = trainer.callback_metrics.get("val_loss")
+                if current_val_loss is not None:
+                    current_val_loss = current_val_loss.item() if hasattr(current_val_loss, 'item') else float(
+                        current_val_loss)
+                    if current_val_loss < self.best_val_loss:
+                        self.best_val_loss = current_val_loss
+                        print(f"New best val_loss: {self.best_val_loss:.4f}")
+
+                print(f"Time spent on validation: {self.format_time(validation_time)}")
+
+                self.last_checkpoint_time = validation_end_time
+
 
     validation_checkpoint_callback = ValidateAtCheckpoint(train_step_cutoff=12_000)
 
     trainer = pl.Trainer(
-        max_epochs=30,
+        max_epochs=1,
         logger=logger,
         callbacks=[
-            validation_checkpoint_callback,
+            ValidateAtCheckpoints(list(range(0, 856020, 700))[1:]),
+            StopAfterBatches(max_batches=7001)
         ],
         log_every_n_steps=200,
     )
@@ -153,7 +200,7 @@ def run_training_job(configs, random_state=0):
     )
 
     trainer.fit(model, data_module)
-    val_loss = validation_checkpoint_callback.val_loss
+    val_loss = validation_checkpoint_callback.best_val_loss
     return val_loss
 
 

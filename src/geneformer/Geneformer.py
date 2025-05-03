@@ -67,6 +67,10 @@ class Geneformer(pl.LightningModule):
         }
 
         self.config.update(kwargs)
+        print('configs:')
+        for key, value in self.config.items():
+            print(f'{key}: {value}')
+        print('\n'*5)
         self.save_hyperparameters()
 
         self.embedding_dimension = self.config['embedding_dimension']
@@ -126,7 +130,9 @@ class Geneformer(pl.LightningModule):
         if self.config['attention_method'] == 'perceiver':
             self._create_perceiver_encoder()
         else:
-            if self.config['attention_method'] == 'longformer':
+            if self.config['attention_method'] == 'standard':
+                attention_method = StandardAttentionMethod(self.config['dropout'])
+            elif self.config['attention_method'] == 'longformer':
                 attention_method = LongformerAttentionMethod(
                     attention_window=self.config['longformer_local_attention_window_width'],
                     dropout=self.config['dropout'])
@@ -135,6 +141,7 @@ class Geneformer(pl.LightningModule):
                                                             sequence_length=self.config['maximum_sequence_length'],
                                                             k=self.config['linformer_projected_k'],
                                                             dropout=self.config['dropout'])
+
             self.encoder = self._create_attention_specified_encoder(attention_method)
 
     def _create_attention_specified_encoder(self, attention_method):

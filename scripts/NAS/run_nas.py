@@ -126,9 +126,9 @@ parameters = [
                 "sinusoidal_position",
                 "learned_position",
                 "rotary_position",
-                "alibi_position",
                 "dropout",
                 "activation",
+                "attention_method",
             ]
         },
     ),
@@ -148,11 +148,6 @@ parameters = [
         parameter_type=ParameterType.BOOL,
     ),
     ChoiceParameter(
-        name="alibi_position",
-        values=[True, False],
-        parameter_type=ParameterType.BOOL,
-    ),
-    ChoiceParameter(
         name="activation",
         values=["leaky_relu_steep", "leaky_relu_slight", "sigmoid", "tanh", "selu", "relu"],
         parameter_type=ParameterType.STRING,
@@ -165,6 +160,53 @@ parameters = [
         upper=0.9,
         parameter_type=ParameterType.FLOAT,
     ),
+    ChoiceParameter(
+        name="attention_method",
+        values=["standard", "longformer", "linformer", "perceiver"],
+        parameter_type=ParameterType.STRING,
+        is_ordered=False,
+        sort_values=False,
+        dependents={
+            "longformer": [
+                "longformer_local_attention_window_width",
+            ],
+            "linformer": [
+                "linformer_projected_k",
+            ],
+            "perceiver": [
+                "perceiver_latent_encoder_num_layers",
+                "perceiver_latent_length",
+            ],
+        },
+    ),
+    ChoiceParameter(
+        name="longformer_local_attention_window_width",
+        values=[32, 64, 128],
+        parameter_type=ParameterType.INT,
+        is_ordered=True,
+        sort_values=False,
+    ),
+    ChoiceParameter(
+        name="linformer_projected_k",
+        values=[32, 64, 128, 256],
+        parameter_type=ParameterType.INT,
+        is_ordered=True,
+        sort_values=False,
+    ),
+    RangeParameter(
+        name="perceiver_latent_encoder_num_layers",
+        lower=1,
+        upper=5,
+        parameter_type=ParameterType.INT,
+    ),
+    ChoiceParameter(
+        name="perceiver_latent_length",
+        values=[128, 256, 512],
+        parameter_type=ParameterType.INT,
+        is_ordered=True,
+        sort_values=False,
+    ),
+
 ]
 
 search_space = HierarchicalSearchSpace(
